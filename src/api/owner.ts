@@ -1,11 +1,12 @@
+// src/api/owner.ts
 import axios from 'axios';
 
-const API_BASE = 'https://your-backend-url.com/api';
+const API_BASE = 'http://10.53.0.58:3000/api';
 
 export const getVisitorRequests = async (token: string) => {
   try {
     const response = await axios.get(`${API_BASE}/owner/requests`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     });
     return { success: true, data: response.data };
   } catch (error: any) {

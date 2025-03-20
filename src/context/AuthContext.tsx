@@ -1,15 +1,19 @@
+// src/context/AuthContext.tsx
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Define the type for our auth context value.
+interface AuthData {
+  token: string;
+  role: 'owner' | 'security';
+}
+
 interface AuthContextType {
-  authData: { token: string; role: 'owner' | 'security' } | null;
+  authData: AuthData | null;
   loading: boolean;
-  login: (data: { token: string; role: 'owner' | 'security' }) => Promise<void>;
+  login: (data: AuthData) => Promise<void>;
   logout: () => Promise<void>;
 }
 
-// Create the context, initially undefined.
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
@@ -17,7 +21,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [authData, setAuthData] = useState<AuthContextType['authData']>(null);
+  const [authData, setAuthData] = useState<AuthData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -35,7 +39,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     loadAuthData();
   }, []);
 
-  const login = async (data: { token: string; role: 'owner' | 'security' }) => {
+  const login = async (data: AuthData) => {
     setAuthData(data);
     await AsyncStorage.setItem('authData', JSON.stringify(data));
   };
@@ -52,7 +56,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   );
 };
 
-// Custom hook that guarantees a non-null value.
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {

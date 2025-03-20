@@ -1,5 +1,7 @@
+// app/security.tsx
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, Alert, StyleSheet, Image } from 'react-native';
+import * as ImagePicker from 'expo-image-picker'
 import { useAuth } from '../src/context/AuthContext';
 import { loginSecurity } from '../src/api/auth';
 import { sendVisitorDetails } from '../src/api/security';
@@ -8,12 +10,25 @@ export default function SecurityScreen() {
   const { authData, login, logout } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const [visitor, setVisitor] = useState({
     name: '',
     address: '',
     time: '',
     purpose: '',
   });
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
 
   const handleLogin = async () => {
     const response = await loginSecurity(email, password);
@@ -25,16 +40,15 @@ export default function SecurityScreen() {
   };
 
   const handleSend = async () => {
-    // Ensure authData is available before using it.
     if (!authData) {
       Alert.alert('Error', 'Authentication data not found.');
       return;
     }
-    
-    const response = await sendVisitorDetails(authData.token, visitor);
+    const response = await sendVisitorDetails(authData.token, visitor, imageUri || undefined);
     if (response.success) {
       Alert.alert('Success', 'Visitor details sent!');
       setVisitor({ name: '', address: '', time: '', purpose: '' });
+      setImageUri(null);
     } else {
       Alert.alert('Error', response.message);
     }
@@ -85,6 +99,9 @@ export default function SecurityScreen() {
         value={visitor.purpose}
         onChangeText={(text) => setVisitor({ ...visitor, purpose: text })}
       />
+
+      {imageUri && <Image source={{ uri: imageUri }} style={{ width: 100, height: 100, marginVertical: 10 }} />}
+      <Button title="Pick an Image" onPress={pickImage} />
       <Button title="Send Visitor Details" onPress={handleSend} />
     </View>
   );

@@ -1,3 +1,4 @@
+// app/owner.tsx
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, FlatList, Alert, StyleSheet } from 'react-native';
 import { useAuth } from '../src/context/AuthContext';
@@ -6,14 +7,14 @@ import { getVisitorRequests, respondToRequest } from '../src/api/owner';
 import { io, Socket } from 'socket.io-client';
 
 // Replace with your Socket.IO server URL
-const SOCKET_URL = 'https://your-backend-url.com';
+const SOCKET_URL = 'http://10.53.0.58:3000';
 
 // Define the type for visitor requests.
 interface VisitorRequest {
   id: number;
   visitorName: string;
   purpose: string;
-  // Add other fields like address, time, etc., as needed.
+  // Optionally add address, time, imageUrl, etc.
 }
 
 export default function OwnerScreen() {
@@ -23,7 +24,6 @@ export default function OwnerScreen() {
   const [requests, setRequests] = useState<VisitorRequest[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
 
-  // Effect to fetch requests and set up the socket connection for real-time updates.
   useEffect(() => {
     if (authData && authData.role === 'owner') {
       fetchRequests();
@@ -35,12 +35,10 @@ export default function OwnerScreen() {
       });
       setSocket(newSocket);
 
-      // Cleanup function to close the socket when the component unmounts or authData changes.
       return () => {
         newSocket.close();
       };
     }
-    // If authData is not available or role isn't owner, no effect is needed.
     return undefined;
   }, [authData]);
 
@@ -68,14 +66,12 @@ export default function OwnerScreen() {
   const handleLogin = async () => {
     const response = await loginOwner(email, password);
     if (response.success) {
-      // Assuming response.data includes a token and role
       login({ token: response.data.token, role: 'owner' });
     } else {
       Alert.alert('Login Failed', response.message);
     }
   };
 
-  // If not logged in or not owner, show the login screen.
   if (!authData || authData.role !== 'owner') {
     return (
       <View style={styles.container}>
@@ -98,16 +94,17 @@ export default function OwnerScreen() {
     );
   }
 
-  // Render the owner dashboard with the list of visitor requests.
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Owner Dashboard</Text>
       <Button title="Logout" onPress={logout} />
       <FlatList
         data={requests}
-        keyExtractor={(item,index) => item.id ? item.id.toString(): index.toString()}
+        keyExtractor={(item, index) =>
+          item.id ? item.id.toString() : index.toString()
+        }
         renderItem={({ item }) => (
-          <View style={styles.card}> 
+          <View style={styles.card}>
             <Text>Name: {item.visitorName}</Text>
             <Text>Purpose: {item.purpose}</Text>
             <View style={styles.buttonRow}>
