@@ -7,7 +7,7 @@ import { getVisitorRequests, respondToRequest } from '../src/api/owner';
 import { io, Socket } from 'socket.io-client';
 
 // Replace with your Socket.IO server URL
-const SOCKET_URL = 'http://10.53.0.58:3000';
+const SOCKET_URL = 'http://10.87.2.116:3000';
 
 // Define the type for visitor requests.
 interface VisitorRequest {
