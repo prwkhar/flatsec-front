@@ -7,13 +7,14 @@ import { getVisitorRequests, respondToRequest } from '../src/api/owner';
 import { io, Socket } from 'socket.io-client';
 
 // Replace with your Socket.IO server URL
-const SOCKET_URL = `http://10.53.3.50:3000`;
+const SOCKET_URL = `http://10.52.9.241:3000`;
 
-// Define the type for visitor requests.
+// Define the type for visitor requests using _id as string.
 interface VisitorRequest {
-  id: number;
+  _id: string;
   visitorName: string;
   purpose: string;
+  status: number; // 0: pending, 1: approved, -1: rejected
   // Optionally add address, time, imageUrl, etc.
 }
 
@@ -21,6 +22,7 @@ export default function OwnerScreen() {
   const { authData, login, logout } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // Only pending requests (status 0) are shown on the owner's dashboard.
   const [requests, setRequests] = useState<VisitorRequest[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
 
@@ -28,10 +30,20 @@ export default function OwnerScreen() {
     if (authData && authData.role === 'owner') {
       fetchRequests();
 
-      // Set up Socket.IO connection
+      // Set up Socket.IO connection for real-time updates (if needed)
       const newSocket: Socket = io(SOCKET_URL, { query: { token: authData.token } });
+      newSocket.on('status_update', (updatedRequest: VisitorRequest) => {
+        // If the updated request is no longer pending, remove it from the owner's list.
+        setRequests((prevRequests) => {
+          const filtered = prevRequests.filter(r => r._id !== updatedRequest._id);
+          return filtered;
+        });
+      });
       newSocket.on('new_request', (data: VisitorRequest) => {
-        setRequests((prevRequests) => [data, ...prevRequests]);
+        // If a new request comes in and it is pending, add it.
+        if (data.status === 0) {
+          setRequests((prevRequests) => [data, ...prevRequests]);
+        }
       });
       setSocket(newSocket);
 
@@ -46,17 +58,22 @@ export default function OwnerScreen() {
     if (!authData) return;
     const response = await getVisitorRequests(authData.token);
     if (response.success) {
-      setRequests(response.data as VisitorRequest[]);
+      // Filter to show only pending requests (status === 0)
+      const pendingRequests = (response.data as VisitorRequest[]).filter(
+        (r) => r.status === 0
+      );
+      setRequests(pendingRequests);
     } else {
       Alert.alert('Error', response.message);
     }
   };
 
-  const handleResponse = async (id: number, accepted: boolean) => {
+  const handleResponse = async (id: string, accepted: boolean) => {
     if (!authData) return;
     const response = await respondToRequest(authData.token, id, accepted);
     if (response.success) {
       Alert.alert('Response sent', accepted ? 'Approved' : 'Rejected');
+      // Refresh the requests (owner dashboard shows only pending ones)
       fetchRequests();
     } else {
       Alert.alert('Error', response.message);
@@ -100,16 +117,14 @@ export default function OwnerScreen() {
       <Button title="Logout" onPress={logout} />
       <FlatList
         data={requests}
-        keyExtractor={(item, index) =>
-          item.id ? item.id.toString() : index.toString()
-        }
+        keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <View style={styles.card}>
             <Text>Name: {item.visitorName}</Text>
             <Text>Purpose: {item.purpose}</Text>
             <View style={styles.buttonRow}>
-              <Button title="Approve" onPress={() => handleResponse(item.id, true)} />
-              <Button title="Reject" onPress={() => handleResponse(item.id, false)} />
+              <Button title="Approve" onPress={() => handleResponse(item._id, true)} />
+              <Button title="Reject" onPress={() => handleResponse(item._id, false)} />
             </View>
           </View>
         )}

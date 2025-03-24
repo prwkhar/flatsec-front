@@ -1,7 +1,7 @@
 // src/api/owner.ts
 import axios from 'axios';
 
-const API_BASE = 'http://10.53.3.50:3000/api';
+const API_BASE = 'http://10.52.9.241:3000/api';
 
 export const getVisitorRequests = async (token: string) => {
   try {
@@ -14,7 +14,7 @@ export const getVisitorRequests = async (token: string) => {
   }
 };
 
-export const respondToRequest = async (token: string, requestId: number, accepted: boolean) => {
+export const respondToRequest = async (token: string, requestId: string, accepted: boolean) => {
   try {
     const response = await axios.post(
       `${API_BASE}/owner/requests/${requestId}/respond`,

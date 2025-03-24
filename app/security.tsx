@@ -1,10 +1,27 @@
+// app/security.tsx
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet, Image, ScrollView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
+import io from 'socket.io-client';
 import { useAuth } from '../src/context/AuthContext';
 import { loginSecurity, fetchVisitorRequests } from '../src/api/auth';
 import { sendVisitorDetails } from '../src/api/security';
+
+// Define the interface for VisitorRequest
+interface VisitorRequest {
+  _id: string;
+  visitorName: string;
+  roomno: number;
+  purpose: string;
+  status: number;
+  address?: string;
+  time?: string;
+  imageUrl?: string;
+}
+
+// Replace with your server URL
+const socket = io('http://10.52.9.241:3000');
 
 export default function SecurityScreen() {
   const { authData, login, logout } = useAuth();
@@ -18,11 +35,9 @@ export default function SecurityScreen() {
     purpose: '',
     roomno: 1, // Default room number
   });
-
   // State to store visitor requests
-  const [visitorRequests, setVisitorRequests] = useState([]);
+  const [visitorRequests, setVisitorRequests] = useState<VisitorRequest[]>([]);
 
-  // Function to fetch visitor requests after login
   const loadVisitorRequests = async () => {
     if (authData) {
       const response = await fetchVisitorRequests(authData.token);
@@ -33,6 +48,31 @@ export default function SecurityScreen() {
       }
     }
   };
+
+  // Listen for real-time status updates via Socket.IO with logging for debugging
+  useEffect(() => {
+    socket.on('status_update', (updatedRequest: VisitorRequest) => {
+      setVisitorRequests((prevRequests) => {
+        const index = prevRequests.findIndex(req => req._id === updatedRequest._id);
+        if (index !== -1) {
+          const newRequests = [...prevRequests];
+          newRequests[index] = updatedRequest;
+          return newRequests;
+        }
+        return [updatedRequest, ...prevRequests];
+      });
+    });
+
+    // Listen for new requests
+    socket.on('new_request', (newRequest: VisitorRequest) => {
+      setVisitorRequests((prevRequests) => [newRequest, ...prevRequests]);
+    });
+
+    return () => {
+      socket.off('status_update');
+      socket.off('new_request');
+    };
+  }, []);
 
   useEffect(() => {
     if (authData) {
@@ -56,7 +96,7 @@ export default function SecurityScreen() {
     const response = await loginSecurity(email, password);
     if (response.success) {
       login({ token: response.data.token, role: 'security' });
-      loadVisitorRequests(); // Load visitor requests after login
+      loadVisitorRequests();
     } else {
       Alert.alert('Login Failed', response.message);
     }
@@ -72,7 +112,7 @@ export default function SecurityScreen() {
       Alert.alert('Success', 'Visitor details sent!');
       setVisitor({ name: '', address: '', time: '', purpose: '', roomno: 1 });
       setImageUri(null);
-      loadVisitorRequests(); // Refresh visitor requests
+      loadVisitorRequests();
     } else {
       Alert.alert('Error', response.message);
     }
@@ -86,14 +126,13 @@ export default function SecurityScreen() {
         <TextInput style={styles.input} placeholder="Password" value={password} secureTextEntry onChangeText={setPassword} />
         <Button title="Login" onPress={handleLogin} />
 
-        {/* Visitor Request List (Shown After Login) */}
         <ScrollView style={styles.requestsContainer}>
           <Text style={styles.title}>Visitor Status</Text>
           {visitorRequests.length === 0 ? (
             <Text>No visitor requests found.</Text>
           ) : (
             visitorRequests.map((req, index) => (
-              <View key={index} style={styles.requestItem}>
+              <View key={req._id || index} style={styles.requestItem}>
                 <Text>Name: {req.visitorName}</Text>
                 <Text>Room: {req.roomno}</Text>
                 <Text>Purpose: {req.purpose}</Text>
@@ -111,13 +150,37 @@ export default function SecurityScreen() {
       <Text style={styles.title}>Security Dashboard</Text>
       <Button title="Logout" onPress={logout} />
 
-      <TextInput style={styles.input} placeholder="Visitor Name" value={visitor.name} onChangeText={(text) => setVisitor({ ...visitor, name: text })} />
-      <TextInput style={styles.input} placeholder="Address" value={visitor.address} onChangeText={(text) => setVisitor({ ...visitor, address: text })} />
-      <TextInput style={styles.input} placeholder="Time" value={visitor.time} onChangeText={(text) => setVisitor({ ...visitor, time: text })} />
-      <TextInput style={styles.input} placeholder="Purpose" value={visitor.purpose} onChangeText={(text) => setVisitor({ ...visitor, purpose: text })} />
+      <TextInput
+        style={styles.input}
+        placeholder="Visitor Name"
+        value={visitor.name}
+        onChangeText={(text) => setVisitor({ ...visitor, name: text })}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Address"
+        value={visitor.address}
+        onChangeText={(text) => setVisitor({ ...visitor, address: text })}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Time"
+        value={visitor.time}
+        onChangeText={(text) => setVisitor({ ...visitor, time: text })}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Purpose"
+        value={visitor.purpose}
+        onChangeText={(text) => setVisitor({ ...visitor, purpose: text })}
+      />
 
       <Text style={styles.label}>Select Room Number:</Text>
-      <Picker selectedValue={visitor.roomno} style={styles.picker} onValueChange={(itemValue) => setVisitor({ ...visitor, roomno: itemValue })}>
+      <Picker
+        selectedValue={visitor.roomno}
+        style={styles.picker}
+        onValueChange={(itemValue) => setVisitor({ ...visitor, roomno: itemValue })}
+      >
         {[...Array(10)].map((_, i) => (
           <Picker.Item key={i} label={`Room ${i + 1}`} value={i + 1} />
         ))}
@@ -127,14 +190,13 @@ export default function SecurityScreen() {
       <Button title="Pick an Image" onPress={pickImage} />
       <Button title="Send Visitor Details" onPress={handleSend} />
 
-      {/* Visitor Status List */}
       <ScrollView style={styles.requestsContainer}>
         <Text style={styles.title}>Visitor Status</Text>
         {visitorRequests.length === 0 ? (
           <Text>No visitor requests found.</Text>
         ) : (
           visitorRequests.map((req, index) => (
-            <View key={index} style={styles.requestItem}>
+            <View key={req._id || index} style={styles.requestItem}>
               <Text>Name: {req.visitorName}</Text>
               <Text>Room: {req.roomno}</Text>
               <Text>Purpose: {req.purpose}</Text>
