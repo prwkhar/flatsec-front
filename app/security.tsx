@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, TextInput, Button, Alert, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, ImageBackground } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { Picker } from '@react-native-picker/picker';
 import io from 'socket.io-client';
 import { useAuth } from '../src/context/AuthContext';
 import { loginSecurity, fetchVisitorRequests } from '../src/api/auth';
 import { sendVisitorDetails } from '../src/api/security';
+import background from '../assets/images/background.jpg';
 
 interface VisitorRequest {
   _id: string;
@@ -173,6 +174,7 @@ export default function SecurityScreen() {
   }
 
   return (
+    <ImageBackground source={background} style={styles.background}>
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Security Dashboard</Text>
       <Button title="Logout" onPress={logout} />
@@ -247,29 +249,39 @@ export default function SecurityScreen() {
         )}
       </ScrollView>
     </ScrollView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,// Adjust the opacity for a more subtle background
+    resizeMode: 'cover',
+  },
   container: { 
     flex: 1, 
     padding: 20,
     alignItems: 'center', 
-    justifyContent: 'center' 
+    justifyContent: 'center',
+    color: 'white', 
+    backgroundColor: 'rgba(214, 192, 192, 0.5)', // Adds a semi-transparent overlay
   },
   title: { 
     fontSize: 24, 
-    marginBottom: 20 
+    marginBottom: 20,
+    color: 'white'
   },
   input: { 
     width: '80%', 
     borderWidth: 1, 
-    padding: 10, 
+    padding: 10,
+    color: 'white', 
     marginBottom: 10 
   },
   label: { 
     fontSize: 16, 
-    marginTop: 10 
+    marginTop: 10,
+    color: 'white'
   },
   picker: { 
     width: '80%', 
