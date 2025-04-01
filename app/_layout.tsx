@@ -1,15 +1,31 @@
-// app/_layout.tsx
 import React from 'react';
-import { Tabs } from 'expo-router';
+import { Tabs, Stack } from 'expo-router';
 import { AuthProvider } from '../src/context/AuthContext';
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <Tabs>
-        <Tabs.Screen name="security" options={{ title: 'Security' }} />
-        <Tabs.Screen name="owner" options={{ title: 'Owner' }} />
-      </Tabs>
+      <Stack initialRouteName='welcome'>
+        {/* Remove the component prop - Expo Router auto-links files */}
+        <Stack.Screen
+          name="welcome"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="security"
+          options={{
+            title: 'Security',
+          }}
+        />
+        <Stack.Screen
+          name="owner"
+          options={{
+            title: 'Owner',
+          }}
+        />
+      </Stack>
     </AuthProvider>
   );
 }

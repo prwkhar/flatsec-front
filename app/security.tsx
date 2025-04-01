@@ -1,14 +1,12 @@
-// app/security.tsx
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet, Image, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, Button, Alert, StyleSheet, Image, ScrollView, TouchableOpacity } from 'react-native';
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { Picker } from '@react-native-picker/picker';
-import * as ImagePicker from 'expo-image-picker';
 import io from 'socket.io-client';
 import { useAuth } from '../src/context/AuthContext';
 import { loginSecurity, fetchVisitorRequests } from '../src/api/auth';
 import { sendVisitorDetails } from '../src/api/security';
 
-// Define the interface for VisitorRequest
 interface VisitorRequest {
   _id: string;
   visitorName: string;
@@ -20,22 +18,24 @@ interface VisitorRequest {
   imageUrl?: string;
 }
 
-// Replace with your server URL
-const socket = io('http://10.52.9.241:3000');
+const socket = io('http://192.168.185.234:3000');
 
 export default function SecurityScreen() {
+  const [opencamera, setOpenCamera] = useState(false);
+  const [facing, setFacing] = useState<CameraType>('back');
+  const [permission, requestPermission] = useCameraPermissions();
   const { authData, login, logout } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const cameraRef = useRef<CameraView>(null);
   const [visitor, setVisitor] = useState({
     name: '',
     address: '',
     time: '',
     purpose: '',
-    roomno: 1, // Default room number
+    roomno: 1,
   });
-  // State to store visitor requests
   const [visitorRequests, setVisitorRequests] = useState<VisitorRequest[]>([]);
 
   const loadVisitorRequests = async () => {
@@ -49,11 +49,11 @@ export default function SecurityScreen() {
     }
   };
 
-  // Listen for real-time status updates via Socket.IO with logging for debugging
+  // Listen for real-time status updates via Socket.IO
   useEffect(() => {
     socket.on('status_update', (updatedRequest: VisitorRequest) => {
       setVisitorRequests((prevRequests) => {
-        const index = prevRequests.findIndex(req => req._id === updatedRequest._id);
+        const index = prevRequests.findIndex((req) => req._id === updatedRequest._id);
         if (index !== -1) {
           const newRequests = [...prevRequests];
           newRequests[index] = updatedRequest;
@@ -63,7 +63,6 @@ export default function SecurityScreen() {
       });
     });
 
-    // Listen for new requests
     socket.on('new_request', (newRequest: VisitorRequest) => {
       setVisitorRequests((prevRequests) => [newRequest, ...prevRequests]);
     });
@@ -80,15 +79,42 @@ export default function SecurityScreen() {
     }
   }, [authData]);
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+  if (!permission) {
+    return <View />;
+  }
+
+  if (!permission.granted) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.message}>We need your permission to show the camera</Text>
+        <Button onPress={requestPermission} title="Grant Permission" />
+      </View>
+    );
+  }
+
+  function toggleCameraFacing() {
+    setFacing((current) => (current === 'back' ? 'front' : 'back'));
+  }
+
+  const takeimage = async () => {
+    if (!permission?.granted) {
+      Alert.alert('Camera permission not granted');
+      return;
+    }
+
+    try {
+      const photo = await cameraRef.current?.takePictureAsync({
+        quality: 0.5,
+        base64: true,
+        skipProcessing: true,
+      });
+      if (photo) {
+        setImageUri(photo.uri);
+        setOpenCamera(false);
+      }
+    } catch (error) {
+      console.error('Error taking picture:', error);
+      Alert.alert('Error', 'Failed to take picture.');
     }
   };
 
@@ -109,11 +135,13 @@ export default function SecurityScreen() {
     }
     const response = await sendVisitorDetails(authData.token, visitor, imageUri || undefined);
     if (response.success) {
+      console.log('Visitor details sent successfully:', response.data);
       Alert.alert('Success', 'Visitor details sent!');
       setVisitor({ name: '', address: '', time: '', purpose: '', roomno: 1 });
       setImageUri(null);
       loadVisitorRequests();
     } else {
+      console.log('Error sending visitor details:', response.message);
       Alert.alert('Error', response.message);
     }
   };
@@ -125,14 +153,13 @@ export default function SecurityScreen() {
         <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} />
         <TextInput style={styles.input} placeholder="Password" value={password} secureTextEntry onChangeText={setPassword} />
         <Button title="Login" onPress={handleLogin} />
-
         <ScrollView style={styles.requestsContainer}>
           <Text style={styles.title}>Visitor Status</Text>
           {visitorRequests.length === 0 ? (
             <Text>No visitor requests found.</Text>
           ) : (
-            visitorRequests.map((req, index) => (
-              <View key={req._id || index} style={styles.requestItem}>
+            visitorRequests.map((req) => (
+              <View key={req._id} style={styles.requestItem}>
                 <Text>Name: {req.visitorName}</Text>
                 <Text>Room: {req.roomno}</Text>
                 <Text>Purpose: {req.purpose}</Text>
@@ -149,7 +176,6 @@ export default function SecurityScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Security Dashboard</Text>
       <Button title="Logout" onPress={logout} />
-
       <TextInput
         style={styles.input}
         placeholder="Visitor Name"
@@ -174,8 +200,6 @@ export default function SecurityScreen() {
         value={visitor.purpose}
         onChangeText={(text) => setVisitor({ ...visitor, purpose: text })}
       />
-
-      <Text style={styles.label}>Select Room Number:</Text>
       <Picker
         selectedValue={visitor.roomno}
         style={styles.picker}
@@ -186,8 +210,25 @@ export default function SecurityScreen() {
         ))}
       </Picker>
 
-      {imageUri && <Image source={{ uri: imageUri }} style={{ width: 100, height: 100, marginVertical: 10 }} />}
-      <Button title="Pick an Image" onPress={pickImage} />
+      {opencamera && (
+        <View style={styles.cameraContainer}>
+          <CameraView 
+            style={styles.camera}
+            facing={facing}
+            ref={cameraRef}
+          >
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
+                <Text style={styles.text}>Flip Camera</Text>
+              </TouchableOpacity>
+            </View>
+          </CameraView>
+          <Button title="Take Picture" onPress={takeimage} />
+          {imageUri && <Image source={{ uri: imageUri }} style={styles.previewImage} />}
+        </View>
+      )}
+      
+      <Button title="Open Camera" onPress={() => setOpenCamera(true)} />
       <Button title="Send Visitor Details" onPress={handleSend} />
 
       <ScrollView style={styles.requestsContainer}>
@@ -195,8 +236,8 @@ export default function SecurityScreen() {
         {visitorRequests.length === 0 ? (
           <Text>No visitor requests found.</Text>
         ) : (
-          visitorRequests.map((req, index) => (
-            <View key={req._id || index} style={styles.requestItem}>
+          visitorRequests.map((req) => (
+            <View key={req._id} style={styles.requestItem}>
               <Text>Name: {req.visitorName}</Text>
               <Text>Room: {req.roomno}</Text>
               <Text>Purpose: {req.purpose}</Text>
@@ -210,11 +251,73 @@ export default function SecurityScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 24, marginBottom: 20 },
-  input: { width: '80%', borderWidth: 1, padding: 10, marginBottom: 10 },
-  label: { fontSize: 16, marginTop: 10 },
-  picker: { width: '80%', height: 50, marginBottom: 10 },
-  requestsContainer: { marginTop: 20, width: '100%' },
-  requestItem: { padding: 10, borderWidth: 1, marginBottom: 5, borderRadius: 5, backgroundColor: '#f9f9f9' },
+  container: { 
+    flex: 1, 
+    padding: 20,
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  title: { 
+    fontSize: 24, 
+    marginBottom: 20 
+  },
+  input: { 
+    width: '80%', 
+    borderWidth: 1, 
+    padding: 10, 
+    marginBottom: 10 
+  },
+  label: { 
+    fontSize: 16, 
+    marginTop: 10 
+  },
+  picker: { 
+    width: '80%', 
+    height: 50, 
+    marginBottom: 10 
+  },
+  requestsContainer: { 
+    marginTop: 20, 
+    width: '100%' 
+  },
+  requestItem: { 
+    padding: 10, 
+    borderWidth: 1, 
+    marginBottom: 5, 
+    borderRadius: 5, 
+    backgroundColor: '#f9f9f9' 
+  },
+  message: {
+    textAlign: 'center',
+    paddingBottom: 10,
+  },
+  cameraContainer: {
+    flex: 1,
+    width: '100%'
+  },
+  camera: {
+    flex: 1,
+    width: '100%'
+  },
+  buttonContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: 'transparent',
+    margin: 64,
+  },
+  button: {
+    flex: 1,
+    alignSelf: 'flex-end',
+    alignItems: 'center',
+  },
+  text: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  previewImage: {
+    width: 200,
+    height: 200,
+    marginTop: 10
+  }
 });
