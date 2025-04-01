@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet, Image, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, Alert, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { Picker } from '@react-native-picker/picker';
 import io from 'socket.io-client';
@@ -210,25 +210,25 @@ export default function SecurityScreen() {
         ))}
       </Picker>
 
-      {opencamera && (
-        <View style={styles.cameraContainer}>
-          <CameraView 
-            style={styles.camera}
-            facing={facing}
-            ref={cameraRef}
-          >
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-                <Text style={styles.text}>Flip Camera</Text>
-              </TouchableOpacity>
-            </View>
-          </CameraView>
-          <Button title="Take Picture" onPress={takeimage} />
-          {imageUri && <Image source={{ uri: imageUri }} style={styles.previewImage} />}
-        </View>
-      )}
-      
-      <Button title="Open Camera" onPress={() => setOpenCamera(true)} />
+      {opencamera ? (
+  <View style={styles.cameraContainer}>
+    <CameraView 
+      style={styles.camera}
+      facing={facing}
+      ref={cameraRef}
+    >
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
+          <Text style={styles.text}>Flip Camera</Text>
+        </TouchableOpacity>
+      </View>
+    </CameraView>
+    <Button title="Take Picture" onPress={takeimage} />
+    {imageUri && <Image source={{ uri: imageUri }} style={styles.previewImage} />}
+  </View>
+) : (
+  <Button title="Open Camera" onPress={() => setOpenCamera(true)} />
+)}
       <Button title="Send Visitor Details" onPress={handleSend} />
 
       <ScrollView style={styles.requestsContainer}>
@@ -292,12 +292,12 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   cameraContainer: {
-    flex: 1,
-    width: '100%'
+    height: '50%' ,// 70% of screen height
+    width: '100%',
+    marginBottom: 20,
   },
   camera: {
     flex: 1,
-    width: '100%'
   },
   buttonContainer: {
     flex: 1,
