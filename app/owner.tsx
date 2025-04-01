@@ -1,4 +1,3 @@
-// app/owner.tsx
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -23,8 +22,8 @@ interface VisitorRequest {
   _id: string;
   visitorName: string;
   purpose: string;
-  imageUrl?: string; // Optional image URL
-  status: number; // 0: pending, 1: approved, -1: rejected
+  imageUrl?: string; 
+  status: number; 
 }
 
 export default function OwnerScreen() {
@@ -38,13 +37,11 @@ export default function OwnerScreen() {
   useEffect(() => {
     if (authData && authData.role === "owner") {
       fetchRequests();
-
-      // Set up Socket.IO connection for real-time updates (if needed)
+      
       const newSocket: Socket = io(SOCKET_URL, {
         query: { token: authData.token },
       });
       newSocket.on("status_update", (updatedRequest: VisitorRequest) => {
-        // If the updated request is no longer pending, remove it from the owner's list.
         setRequests((prevRequests) => {
           const filtered = prevRequests.filter(
             (r) => r._id !== updatedRequest._id
@@ -53,7 +50,6 @@ export default function OwnerScreen() {
         });
       });
       newSocket.on("new_request", (data: VisitorRequest) => {
-        // If a new request comes in and it is pending, add it.
         if (data.status === 0) {
           setRequests((prevRequests) => [data, ...prevRequests]);
         }
@@ -71,7 +67,6 @@ export default function OwnerScreen() {
     if (!authData) return;
     const response = await getVisitorRequests(authData.token);
     if (response.success) {
-      // Filter to show only pending requests (status === 0)
       const pendingRequests = (response.data as VisitorRequest[]).filter(
         (r) => r.status === 0
       );

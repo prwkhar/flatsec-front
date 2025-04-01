@@ -50,7 +50,6 @@ export default function SecurityScreen() {
     }
   };
 
-  // Listen for real-time status updates via Socket.IO
   useEffect(() => {
     socket.on('status_update', (updatedRequest: VisitorRequest) => {
       setVisitorRequests((prevRequests) => {

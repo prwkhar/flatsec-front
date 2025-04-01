@@ -1,4 +1,3 @@
-// src/api/security.ts
 import axios from 'axios';
 
 const API_BASE = `http://192.168.185.234:3000/api`;
