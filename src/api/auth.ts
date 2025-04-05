@@ -1,7 +1,7 @@
 // src/api/auth.ts
 import axios from 'axios';
 
-const API_BASE = `http://192.168.185.234:3000/api`;
+const API_BASE = `http://172.20.10.2:3000/api`;
 
 export const loginOwner = async (email: string, password: string) => {
   try {

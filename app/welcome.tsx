@@ -1,15 +1,13 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+const background = require('../assets/images/background2.jpg'); // Adjust the path to your image
 
 export default function WelcomeScreen() {
   const router = useRouter();
 
   return (
-    <ImageBackground
-      source={{ uri: 'https://via.placeholder.com/800x1200.png?text=Background+Image' }} // Replace with your background image URL
-      style={styles.background}
-    >
+    <ImageBackground source={background} style={styles.background}>
       <View style={styles.container}>
         <Text style={styles.title}>Welcome to Apartment Management App</Text>
         <Text style={styles.subtitle}>Manage your apartment effortlessly!</Text>

@@ -1,12 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, ImageBackground } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  Button, 
+  Alert, 
+  StyleSheet, 
+  Image, 
+  ScrollView, 
+  TouchableOpacity, 
+  Dimensions, 
+  ImageBackground 
+} from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { Picker } from '@react-native-picker/picker';
 import io from 'socket.io-client';
 import { useAuth } from '../src/context/AuthContext';
 import { loginSecurity, fetchVisitorRequests } from '../src/api/auth';
 import { sendVisitorDetails } from '../src/api/security';
-import background from '../assets/images/background.jpg';
+
+const background = require('../assets/images/background.jpg'); // Adjust the path as necessary
 
 interface VisitorRequest {
   _id: string;
@@ -19,7 +32,7 @@ interface VisitorRequest {
   imageUrl?: string;
 }
 
-const socket = io('http://192.168.185.234:3000');
+const socket = io('http://172.20.10.2:3000');
 
 export default function SecurityScreen() {
   const [opencamera, setOpenCamera] = useState(false);
@@ -146,136 +159,182 @@ export default function SecurityScreen() {
     }
   };
 
+  // Security Login View (when not authenticated)
   if (!authData || authData.role !== 'security') {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Security Login</Text>
-        <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} />
-        <TextInput style={styles.input} placeholder="Password" value={password} secureTextEntry onChangeText={setPassword} />
-        <Button title="Login" onPress={handleLogin} />
+      <ImageBackground source={background} style={styles.background}>
+        <View style={styles.loginContainer}>
+          <Text style={styles.title}>Security Login</Text>
+          <TextInput 
+            style={styles.input} 
+            placeholder="Email" 
+            placeholderTextColor="#ccc"
+            value={email} 
+            onChangeText={setEmail} 
+          />
+          <TextInput 
+            style={styles.input} 
+            placeholder="Password" 
+            placeholderTextColor="#ccc"
+            value={password} 
+            secureTextEntry 
+            onChangeText={setPassword} 
+          />
+          <View style={styles.buttonWrapper}>
+            <Button title="Login" onPress={handleLogin} color="#1E90FF" />
+          </View>
+          <ScrollView style={styles.requestsContainer}>
+            <Text style={styles.subtitle}>Visitor Status</Text>
+            {visitorRequests.length === 0 ? (
+              <Text style={styles.normalText}>No visitor requests found.</Text>
+            ) : (
+              visitorRequests.map((req) => (
+                <View key={req._id} style={styles.requestItem}>
+                  <Text style={styles.normalText}>Name: {req.visitorName}</Text>
+                  <Text style={styles.normalText}>Room: {req.roomno}</Text>
+                  <Text style={styles.normalText}>Purpose: {req.purpose}</Text>
+                  <Text style={styles.normalText}>Status: {req.status}</Text>
+                </View>
+              ))
+            )}
+          </ScrollView>
+        </View>
+      </ImageBackground>
+    );
+  }
+
+  // Security Dashboard View (when authenticated)
+  return (
+    <ImageBackground source={background} style={styles.background}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Security Dashboard</Text>
+        <View style={styles.buttonWrapper}>
+          <Button title="Logout" onPress={logout} color="#FF4500" />
+        </View>
+        <TextInput
+          style={styles.input}
+          placeholder="Visitor Name"
+          placeholderTextColor="#ccc"
+          value={visitor.name}
+          onChangeText={(text) => setVisitor({ ...visitor, name: text })}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Address"
+          placeholderTextColor="#ccc"
+          value={visitor.address}
+          onChangeText={(text) => setVisitor({ ...visitor, address: text })}
+        />
+        {/* <TextInput
+          style={styles.input}
+          placeholder="Time"
+          placeholderTextColor="#ccc"
+          value={visitor.time}
+          onChangeText={(text) => setVisitor({ ...visitor, time: text })}
+        /> */}
+        <TextInput
+          style={styles.input}
+          placeholder="Purpose"
+          placeholderTextColor="#ccc"
+          value={visitor.purpose}
+          onChangeText={(text) => setVisitor({ ...visitor, purpose: text })}
+        />
+        <Picker
+          selectedValue={visitor.roomno}
+          style={styles.picker}
+          onValueChange={(itemValue) => setVisitor({ ...visitor, roomno: itemValue })}
+        >
+          {[...Array(10)].map((_, i) => (
+            <Picker.Item key={i} label={`Room ${i + 1}`} value={i + 1} />
+          ))}
+        </Picker>
+
+        {opencamera ? (
+          <View style={styles.cameraContainer}>
+            <CameraView 
+              style={styles.camera}
+              facing={facing}
+              ref={cameraRef}
+            >
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
+                  <Text style={styles.text}>Flip Camera</Text>
+                </TouchableOpacity>
+              </View>
+            </CameraView>
+            <View style={styles.buttonWrapper}>
+              <Button title="Take Picture" onPress={takeimage} color="#1E90FF" />
+            </View>
+            {imageUri && <Image source={{ uri: imageUri }} style={styles.previewImage} />}
+          </View>
+        ) : (
+          <View style={styles.buttonWrapper}>
+            <Button title="Open Camera" onPress={() => setOpenCamera(true)} color="#1E90FF" />
+          </View>
+        )}
+        <View style={styles.buttonWrapper}>
+          <Button title="Send Visitor Details" onPress={handleSend} color="#32CD32" />
+        </View>
+
         <ScrollView style={styles.requestsContainer}>
-          <Text style={styles.title}>Visitor Status</Text>
+          <Text style={styles.subtitle}>Visitor Status</Text>
           {visitorRequests.length === 0 ? (
-            <Text>No visitor requests found.</Text>
+            <Text style={styles.normalText}>No visitor requests found.</Text>
           ) : (
             visitorRequests.map((req) => (
               <View key={req._id} style={styles.requestItem}>
-                <Text>Name: {req.visitorName}</Text>
-                <Text>Room: {req.roomno}</Text>
-                <Text>Purpose: {req.purpose}</Text>
-                <Text>Status: {req.status}</Text>
+                <Text style={styles.normalText}>Name: {req.visitorName}</Text>
+                <Text style={styles.normalText}>Room: {req.roomno}</Text>
+                <Text style={styles.normalText}>Purpose: {req.purpose}</Text>
+                <Text style={styles.normalText}>Status: {(req.status==0)?"Waiting":(req.status==1)?"Accepted":"Denied"}</Text>
               </View>
             ))
           )}
         </ScrollView>
-      </View>
-    );
-  }
-
-  return (
-    <ImageBackground source={background} style={styles.background}>
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Security Dashboard</Text>
-      <Button title="Logout" onPress={logout} />
-      <TextInput
-        style={styles.input}
-        placeholder="Visitor Name"
-        value={visitor.name}
-        onChangeText={(text) => setVisitor({ ...visitor, name: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Address"
-        value={visitor.address}
-        onChangeText={(text) => setVisitor({ ...visitor, address: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Time"
-        value={visitor.time}
-        onChangeText={(text) => setVisitor({ ...visitor, time: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Purpose"
-        value={visitor.purpose}
-        onChangeText={(text) => setVisitor({ ...visitor, purpose: text })}
-      />
-      <Picker
-        selectedValue={visitor.roomno}
-        style={styles.picker}
-        onValueChange={(itemValue) => setVisitor({ ...visitor, roomno: itemValue })}
-      >
-        {[...Array(10)].map((_, i) => (
-          <Picker.Item key={i} label={`Room ${i + 1}`} value={i + 1} />
-        ))}
-      </Picker>
-
-      {opencamera ? (
-  <View style={styles.cameraContainer}>
-    <CameraView 
-      style={styles.camera}
-      facing={facing}
-      ref={cameraRef}
-    >
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-          <Text style={styles.text}>Flip Camera</Text>
-        </TouchableOpacity>
-      </View>
-    </CameraView>
-    <Button title="Take Picture" onPress={takeimage} />
-    {imageUri && <Image source={{ uri: imageUri }} style={styles.previewImage} />}
-  </View>
-) : (
-  <Button title="Open Camera" onPress={() => setOpenCamera(true)} />
-)}
-      <Button title="Send Visitor Details" onPress={handleSend} />
-
-      <ScrollView style={styles.requestsContainer}>
-        <Text style={styles.title}>Visitor Status</Text>
-        {visitorRequests.length === 0 ? (
-          <Text>No visitor requests found.</Text>
-        ) : (
-          visitorRequests.map((req) => (
-            <View key={req._id} style={styles.requestItem}>
-              <Text>Name: {req.visitorName}</Text>
-              <Text>Room: {req.roomno}</Text>
-              <Text>Purpose: {req.purpose}</Text>
-              <Text>Status: {req.status}</Text>
-            </View>
-          ))
-        )}
       </ScrollView>
-    </ScrollView>
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   background: {
-    flex: 1,// Adjust the opacity for a more subtle background
+    flex: 1,
     resizeMode: 'cover',
+  },
+  loginContainer: { 
+    flex: 1, 
+    padding: 20,
+    justifyContent: 'center', 
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)', // dark overlay
   },
   container: { 
     flex: 1, 
     padding: 20,
     alignItems: 'center', 
-    justifyContent: 'center',
-    color: 'white', 
-    backgroundColor: 'rgba(214, 192, 192, 0.5)', // Adds a semi-transparent overlay
+    backgroundColor: 'rgba(0, 0, 0, 0.6)', // dark overlay
   },
   title: { 
-    fontSize: 24, 
+    fontSize: 26, 
     marginBottom: 20,
-    color: 'white'
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  subtitle: {
+    fontSize: 20,
+    marginVertical: 10,
+    color: 'white',
+    fontWeight: '600',
   },
   input: { 
     width: '80%', 
     borderWidth: 1, 
+    borderColor: '#fff', 
     padding: 10,
-    color: 'white', 
-    marginBottom: 10 
+    marginBottom: 15,
+    borderRadius: 5,
+    color: 'white',
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   label: { 
     fontSize: 16, 
@@ -285,7 +344,9 @@ const styles = StyleSheet.create({
   picker: { 
     width: '80%', 
     height: 50, 
-    marginBottom: 10 
+    marginBottom: 15,
+    color: 'white',
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   requestsContainer: { 
     marginTop: 20, 
@@ -294,16 +355,18 @@ const styles = StyleSheet.create({
   requestItem: { 
     padding: 10, 
     borderWidth: 1, 
-    marginBottom: 5, 
+    borderColor: '#fff',
+    marginBottom: 10, 
     borderRadius: 5, 
-    backgroundColor: '#f9f9f9' 
+    backgroundColor: 'rgba(255,255,255,0.9)',
   },
   message: {
     textAlign: 'center',
     paddingBottom: 10,
+    color: 'white',
   },
   cameraContainer: {
-    height: '50%' ,// 70% of screen height
+    height: '50%',
     width: '100%',
     marginBottom: 20,
   },
@@ -320,15 +383,29 @@ const styles = StyleSheet.create({
     flex: 1,
     alignSelf: 'flex-end',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    padding: 10,
+    borderRadius: 5,
   },
   text: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
     color: 'white',
   },
   previewImage: {
     width: 200,
     height: 200,
-    marginTop: 10
-  }
+    marginTop: 10,
+    borderRadius: 10,
+  },
+  buttonWrapper: {
+    width: '80%',
+    marginBottom: 15,
+  },
+  // Added normalText style to fix the error
+  normalText: {
+    color: 'black',
+    fontSize: 16,
+    marginVertical: 2,
+  },
 });

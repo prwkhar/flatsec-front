@@ -12,18 +12,21 @@ import {
 import { useAuth } from "../src/context/AuthContext";
 import { loginOwner } from "../src/api/auth";
 import { getVisitorRequests, respondToRequest } from "../src/api/owner";
+import { ImageBackground } from "react-native";
 import { io, Socket } from "socket.io-client";
 
+const background = require("../assets/images/background.jpg");
+
 // Replace with your Socket.IO server URL
-const SOCKET_URL = `http://192.168.185.234:3000`;
+const SOCKET_URL = `http://172.20.10.2:3000`;
 
 // Define the type for visitor requests using _id as string.
 interface VisitorRequest {
   _id: string;
   visitorName: string;
   purpose: string;
-  imageUrl?: string; 
-  status: number; 
+  imageUrl?: string;
+  status: number;
 }
 
 export default function OwnerScreen() {
@@ -37,7 +40,7 @@ export default function OwnerScreen() {
   useEffect(() => {
     if (authData && authData.role === "owner") {
       fetchRequests();
-      
+
       const newSocket: Socket = io(SOCKET_URL, {
         query: { token: authData.token },
       });
@@ -99,66 +102,112 @@ export default function OwnerScreen() {
 
   if (!authData || authData.role !== "owner") {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Owner Login</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          secureTextEntry
-          onChangeText={setPassword}
-        />
-        <Button title="Login" onPress={handleLogin} />
-      </View>
+      <ImageBackground source={background} style={styles.background}>
+        <View style={styles.loginContainer}>
+          <Text style={styles.title}>Owner Login</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#ccc"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#ccc"
+            value={password}
+            secureTextEntry
+            onChangeText={setPassword}
+          />
+          <Button title="Login" onPress={handleLogin} />
+        </View>
+      </ImageBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Owner Dashboard</Text>
-      <Button title="Logout" onPress={logout} />
-      <FlatList
-        data={requests}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text>Name: {item.visitorName}</Text>
-            <Text>Purpose: {item.purpose}</Text>
-            {item.imageUrl && (
-              <Image
-                source={{ uri: item.imageUrl }}
-                style={styles.image}
-                resizeMode="contain" // Use "cover" or "stretch" if needed
-              />
-            )}
-            <View style={styles.buttonRow}>
-              <Button
-                title="Approve"
-                onPress={() => handleResponse(item._id, true)}
-              />
-              <Button
-                title="Reject"
-                onPress={() => handleResponse(item._id, false)}
-              />
+    <ImageBackground source={background} style={styles.background}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Owner Dashboard</Text>
+        <Button title="Logout" onPress={logout} />
+        <FlatList
+          data={requests}
+          keyExtractor={(item) => item._id}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Text style={styles.cardText}>Name: {item.visitorName}</Text>
+              <Text style={styles.cardText}>Purpose: {item.purpose}</Text>
+              {item.imageUrl && (
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.image}
+                  resizeMode="contain" // Use "cover" or "stretch" if needed
+                />
+              )}
+              <View style={styles.buttonRow}>
+                <Button
+                  title="Approve"
+                  onPress={() => handleResponse(item._id, true)}
+                />
+                <Button
+                  title="Reject"
+                  onPress={() => handleResponse(item._id, false)}
+                />
+              </View>
             </View>
-          </View>
-        )}
-      />
-    </View>
+          )}
+        />
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, alignItems: "center" },
-  title: { fontSize: 24, marginBottom: 20 },
-  input: { width: "80%", borderWidth: 1, padding: 10, marginBottom: 10 },
-  card: { borderWidth: 1, padding: 10, marginVertical: 5, width: "100%" },
+  background: {
+    flex: 1,
+    resizeMode: "cover",
+  },
+  loginContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.6)", // semi-transparent dark overlay for login
+  },
+  container: {
+    flex: 1,
+    padding: 20,
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.6)", // semi-transparent dark overlay for dashboard
+  },
+  title: {
+    fontSize: 30,
+    marginBottom: 20,
+    color: "#fff", // white text for better readability on dark background
+  },
+  input: {
+    width: "80%",
+    borderWidth: 1,
+    borderColor: "#fff",
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 5,
+    color: "#fff",
+    backgroundColor: "rgba(255,255,255,0.2)", // light overlay background for input
+  },
+  card: {
+    borderWidth: 1,
+    borderColor: "#fff",
+    padding: 10,
+    marginVertical: 5,
+    width: "100%",
+    borderRadius: 5,
+    backgroundColor: "rgba(255,255,255,0.9)", // card background for readability
+  },
+  cardText: {
+    color: "#000",
+  },
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-around",
