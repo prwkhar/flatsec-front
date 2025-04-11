@@ -17,7 +17,7 @@ export default function WelcomeScreen() {
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={[styles.button, styles.securityButton]}
-            onPress={() => router.push('/security')}
+            onPress={() => router.push('/securityhome')}
           >
             <Text style={styles.buttonText}>Go to Security</Text>
           </TouchableOpacity>

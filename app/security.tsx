@@ -6,7 +6,7 @@ import io from 'socket.io-client';
 import { useAuth } from '../src/context/AuthContext';
 import { loginSecurity, fetchVisitorRequests } from '../src/api/auth';
 import { sendVisitorDetails } from '../src/api/security';
-import background from '../assets/images/background.jpg';
+import {background} from '../assets/images/background.jpg'
 
 interface VisitorRequest {
   _id: string;
