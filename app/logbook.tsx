@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
   StatusBar,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
@@ -42,6 +43,15 @@ export default function WelcomeScreen() {
       }
     } catch (err) {
       Alert.alert('Error', 'Failed to find owner.');
+    }
+  };
+
+  const handleCall = () => {
+    const phoneNumber = phoneNo.replace(/\D/g, ''); // Remove non-numeric characters
+    if (phoneNumber.length > 0) {
+      Linking.openURL(`tel:${phoneNumber}`);
+    } else {
+      Alert.alert('Invalid Number', 'Phone number is not valid.');
     }
   };
 
@@ -89,6 +99,15 @@ export default function WelcomeScreen() {
                 {permission ? 'Granted' : 'Denied'}
               </Text>
             </Text>
+
+            {permission && (
+              <TouchableOpacity
+                style={[styles.primaryButton, { marginTop: 16 }]}
+                onPress={handleCall}
+              >
+                <Text style={styles.buttonText}>Call</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </ScrollView>
