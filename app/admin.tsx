@@ -11,11 +11,18 @@ import {
 } from 'react-native';
 import { useAuth } from '../src/context/AuthContext';
 import { loginAdmin } from '../src/api/auth';
-import { getsecuritytRequests, removeSecurityDetails, sendsecurityDetails } from '@/src/api/admin';
+import {
+  getsecuritytRequests,
+  removeSecurityDetails,
+  sendsecurityDetails,
+} from '@/src/api/admin';
 
 type SecurityRequest = {
   _id: string;
   email: string;
+  name: string;
+  phone: string;
+  address: string;
 };
 
 export default function SecurityScreen() {
@@ -23,7 +30,13 @@ export default function SecurityScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [securityRequests, setSecurityRequests] = useState<SecurityRequest[]>([]);
-  const [form, setForm] = useState({ address: '', password: '' });
+  const [form, setForm] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    email: '',
+    password: '',
+  });
 
   const loadRequests = async () => {
     if (!authData) return;
@@ -48,10 +61,11 @@ export default function SecurityScreen() {
 
   const handleAdd = async () => {
     if (!authData) return Alert.alert('Error', 'Not authenticated');
+    console.log('Form data:', form);
     const resp = await sendsecurityDetails(authData.token, form);
     if (resp.success) {
       Alert.alert('Success', 'Security added');
-      setForm({ address: '', password: '' });
+      setForm({ name: '', phone: '', address: '', email: '', password: '' });
       loadRequests();
     } else {
       Alert.alert('Error', resp.message);
@@ -69,7 +83,6 @@ export default function SecurityScreen() {
     }
   };
 
-  // ** LOGIN **
   if (!authData || authData.role !== 'admin') {
     return (
       <View style={styles.container}>
@@ -97,7 +110,6 @@ export default function SecurityScreen() {
     );
   }
 
-  // ** DASHBOARD **
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={styles.container.backgroundColor} />
@@ -111,10 +123,31 @@ export default function SecurityScreen() {
       <View style={styles.form}>
         <TextInput
           style={styles.input}
-          placeholder="Security Email"
+          placeholder="Name"
+          placeholderTextColor="#aaa"
+          value={form.name}
+          onChangeText={(text) => setForm((f) => ({ ...f, name: text }))}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Phone Number"
+          placeholderTextColor="#aaa"
+          value={form.phone}
+          onChangeText={(text) => setForm((f) => ({ ...f, phone: text }))}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Address"
           placeholderTextColor="#aaa"
           value={form.address}
-          onChangeText={t => setForm(f => ({ ...f, address: t }))}
+          onChangeText={(text) => setForm((f) => ({ ...f, address: text }))}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#aaa"
+          value={form.email}
+          onChangeText={(text) => setForm((f) => ({ ...f, email: text }))}
         />
         <TextInput
           style={styles.input}
@@ -122,7 +155,7 @@ export default function SecurityScreen() {
           placeholderTextColor="#aaa"
           secureTextEntry
           value={form.password}
-          onChangeText={t => setForm(f => ({ ...f, password: t }))}
+          onChangeText={(text) => setForm((f) => ({ ...f, password: text }))}
         />
         <TouchableOpacity style={styles.primaryButton} onPress={handleAdd}>
           <Text style={styles.buttonText}>Add Security</Text>
@@ -133,13 +166,14 @@ export default function SecurityScreen() {
       {securityRequests.length === 0 ? (
         <Text style={styles.infoText}>No security accounts.</Text>
       ) : (
-        securityRequests.map(req => (
+        securityRequests.map((req) => (
           <View key={req._id} style={styles.card}>
-            <Text style={styles.cardText}>{req.email}</Text>
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => handleRemove(req._id)}
-            >
+            <View style={styles.cardLeft}>
+              <Text style={styles.cardTitle}>{req.name}</Text>
+              <Text style={styles.cardDetail}>📧 {req.email}</Text>
+              <Text style={styles.cardDetail}>🏠 {req.address}</Text>
+            </View>
+            <TouchableOpacity style={styles.deleteButton} onPress={() => handleRemove(req._id)}>
               <Text style={styles.deleteText}>Remove</Text>
             </TouchableOpacity>
           </View>
@@ -210,15 +244,26 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#2A2A3D',
     padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
+    borderRadius: 12,
+    marginBottom: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
-  cardText: {
+  cardLeft: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  cardTitle: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  cardDetail: {
+    color: '#CCC',
+    fontSize: 14,
+    marginBottom: 2,
   },
   deleteButton: {
     backgroundColor: '#FF5A5F',

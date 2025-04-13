@@ -7,6 +7,7 @@ export const getsecuritytRequests = async (token: string) => {
     const response = await axios.get(`${API_BASE}/admin/requests`, {
       headers: { Authorization: `Bearer ${token}` },
     });
+    console.log("response at get security requests",response.data);
     
     return { success: true, data: response.data };
   } catch (error: any) {
@@ -16,12 +17,16 @@ export const getsecuritytRequests = async (token: string) => {
 
 export const sendsecurityDetails = async (
   token: string,
-  details: { address: string; password: string;}
+  details: { address:string; email:string; name:string; password:string; phone:string },
 ) => {
   try {
+    console.log("details at send security details",details.phone);
     const payload={
-        email: details.address,
+        email: details.email,
         password: details.password,
+        name: details.name,
+        phoneno: details.phone,
+        address: details.address,
     }
     const response = await axios.post(`${API_BASE}/admin/addsecurity`, payload, {
       headers: { 
