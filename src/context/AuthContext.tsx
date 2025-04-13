@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthData {
   token: string;
-  role: 'owner' | 'security';
+  role: 'owner' | 'security' | 'admin';
 }
 
 interface AuthContextType {

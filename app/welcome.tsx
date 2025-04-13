@@ -28,6 +28,12 @@ export default function WelcomeScreen() {
           >
             <Text style={styles.buttonText}>Go to Owner</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, styles.ownerButton]}
+            onPress={() => router.push('/admin')}
+          >
+            <Text style={styles.buttonText}>Go to Admin</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </ImageBackground>

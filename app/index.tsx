@@ -31,6 +31,14 @@ export default function WelcomeScreen() {
           >
             <Text style={styles.buttonText}>Go to Owner</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.adminButton]}
+            onPress={() => router.push('/admin')}
+          >
+            <Text style={styles.buttonText}>Go to Admin</Text>
+          </TouchableOpacity>
+
         </View>
       </View>
     </ImageBackground>
@@ -77,6 +85,9 @@ const styles = StyleSheet.create({
   },
   ownerButton: {
     backgroundColor: '#DB4437', // Red for Owner
+  },
+  adminButton: {
+    backgroundColor: '#F4B400', // Yellow for Admin
   },
   buttonText: {
     color: '#fff',

@@ -14,8 +14,7 @@ import { loginOwner } from "../src/api/auth";
 import { getVisitorRequests, respondToRequest } from "../src/api/owner";
 import { io, Socket } from "socket.io-client";
 
-// Replace with your Socket.IO server URL
-const SOCKET_URL = `http://192.168.185.234:3000`;
+const SOCKET_URL = `http://192.168.176.234:3000`;
 
 // Define the type for visitor requests using _id as string.
 interface VisitorRequest {

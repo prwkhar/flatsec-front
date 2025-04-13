@@ -6,7 +6,6 @@ import io from 'socket.io-client';
 import { useAuth } from '../src/context/AuthContext';
 import { loginSecurity, fetchVisitorRequests } from '../src/api/auth';
 import { sendVisitorDetails } from '../src/api/security';
-import background from '../assets/images/background.jpg';
 
 interface VisitorRequest {
   _id: string;
@@ -19,7 +18,7 @@ interface VisitorRequest {
   imageUrl?: string;
 }
 
-const socket = io('http://192.168.185.234:3000');
+const socket = io('http://192.168.176.234:3000');
 
 export default function SecurityScreen() {
   const [opencamera, setOpenCamera] = useState(false);
@@ -173,7 +172,6 @@ export default function SecurityScreen() {
   }
 
   return (
-    <ImageBackground source={background} style={styles.background}>
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Security Dashboard</Text>
       <Button title="Logout" onPress={logout} />
@@ -248,7 +246,6 @@ export default function SecurityScreen() {
         )}
       </ScrollView>
     </ScrollView>
-    </ImageBackground>
   );
 }
 
