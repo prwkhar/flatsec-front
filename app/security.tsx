@@ -18,7 +18,7 @@ interface VisitorRequest {
   imageUrl?: string;
 }
 
-const socket = io('http://192.168.176.234:3000');
+const socket = io('http://192.168.185.234:3000');
 
 export default function SecurityScreen() {
   const [opencamera, setOpenCamera] = useState(false);

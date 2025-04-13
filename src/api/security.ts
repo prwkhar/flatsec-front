@@ -33,3 +33,23 @@ export const sendVisitorDetails = async (
     return { success: false, message: error.response?.data?.message || error.message };
   }
 };
+
+export const findownerroomno = async (token: string, roomno: string) => {
+  try{
+    const roomid= "room"+roomno.toString();
+    console.log("room id")
+    console.log(roomid);
+    const response = await axios.get(`${API_BASE}/security/owner/${roomid}`, 
+    {
+      headers: { Authorization: `Bearer ${token}`, 
+      'Content-Type': 'application/json'
+      },
+    });
+    console.log("response at find owner room no",response.data);
+    return { success: true, body: response.data};
+  }
+  catch (error: any) {
+    console.log("error at find owner room no",error.response);
+    return { success: false, message: error.response?.data?.message || error.message };
+  }
+};
