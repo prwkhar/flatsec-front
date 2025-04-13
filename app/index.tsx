@@ -1,97 +1,123 @@
 import React from 'react';
-import { View, Text, Button, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import background from '../assets/images/background2.jpg'; // Adjust the path to your image
-import BlurTabBarBackground from '@/components/ui/TabBarBackground.ios';
+import { FontAwesome } from '@expo/vector-icons';
 
 export default function WelcomeScreen() {
   const router = useRouter();
 
   return (
-    <ImageBackground
-      source={background} // Replace with your background image URL
-      style={styles.background}
-      blurRadius={5}
-    >
-      <View style={styles.container}>
-        <Text style={styles.title}>Welcome to Apartment Management App</Text>
+    <View style={styles.container}>
+      <StatusBar style="light" translucent backgroundColor="transparent" />
+
+      <View style={styles.titleBox}>
+        <Text style={styles.title}>FLATSEC</Text>
         <Text style={styles.subtitle}>Manage your apartment effortlessly!</Text>
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.button, styles.securityButton]}
-            onPress={() => router.push('/homesecurity')}
-          >
-            <Text style={styles.buttonText}>Go to Security</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.ownerButton]}
-            onPress={() => router.push('/owner')}
-          >
-            <Text style={styles.buttonText}>Go to Owner</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.adminButton]}
-            onPress={() => router.push('/admin')}
-          >
-            <Text style={styles.buttonText}>Go to Admin</Text>
-          </TouchableOpacity>
-
-        </View>
       </View>
-    </ImageBackground>
+
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={[styles.button, styles.securityButton]}
+          onPress={() => router.push('/homesecurity')}
+        >
+          <FontAwesome name="shield" size={28} color="#fff" style={styles.icon} />
+          <Text style={styles.buttonText}>Security</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.ownerButton]}
+          onPress={() => router.push('/owner')}
+        >
+          <FontAwesome name="user" size={28} color="#fff" style={styles.icon} />
+          <Text style={styles.buttonText}>Owner</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.adminButton]}
+          onPress={() => router.push('/admin')}
+        >
+          <FontAwesome name="user-secret" size={28} color="#fff" style={styles.icon} />
+          <Text style={styles.buttonText}>Admin</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,// Adjust the opacity for a more subtle background
-    resizeMode: 'cover',
-  },
   container: {
     flex: 1,
+    backgroundColor: '#1E1E2F',  // same dark family
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Adds a semi-transparent overlay
+  },
+  titleBox: {
+    backgroundColor: '#2A2A3D',   // slightly lighter dark
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 40,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
+    elevation: 5,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 10,
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    fontFamily: 'Poppins-Bold',
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#d3d3d3',
-    marginBottom: 30,
+    fontSize: 18,
+    color: '#CCCCCC',
+    marginTop: 8,
+    fontFamily: 'Poppins-Regular',
     textAlign: 'center',
   },
   buttonContainer: {
-    width: '80%',
-    marginTop: 20,
+    width: '100%',
   },
   button: {
-    paddingVertical: 15,
-    borderRadius: 25,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 4,
+    elevation: 4,
   },
-  securityButton: {
-    backgroundColor: '#4267B2', // Blue for Security
-  },
-  ownerButton: {
-    backgroundColor: '#DB4437', // Red for Owner
-  },
-  adminButton: {
-    backgroundColor: '#F4B400', // Yellow for Admin
+  icon: {
+    marginRight: 16,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 20,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontFamily: 'Poppins-Regular',
+  },
+  securityButton: {
+    backgroundColor: '#4F8EF7', // accent blue
+  },
+  ownerButton: {
+    backgroundColor: '#6A6AEF', // secondary blue
+  },
+  adminButton: {
+    backgroundColor: '#FF5A5F', // accent red
   },
 });
+

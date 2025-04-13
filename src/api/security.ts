@@ -4,14 +4,14 @@ const API_BASE = `http://192.168.176.234:3000/api`;
 
 export const sendVisitorDetails = async (
   token: string,
-  details: { name: string; address: string; time: string; purpose: string; roomno: number },
+  details: { name: string; address: string; phoneno: string; purpose: string; roomno: number },
   imageUri?: string
 ) => {
   try {
     const formData = new FormData();
     formData.append('name', details.name);
     formData.append('address', details.address);
-    formData.append('time', details.time);
+    formData.append('phoneno', details.phoneno);
     formData.append('purpose', details.purpose);
     formData.append('roomno', details.roomno.toString());
     if (imageUri) {
@@ -36,10 +36,8 @@ export const sendVisitorDetails = async (
 
 export const findownerroomno = async (token: string, roomno: string) => {
   try{
-    const roomid= "room"+roomno.toString();
-    console.log("room id")
-    console.log(roomid);
-    const response = await axios.get(`${API_BASE}/security/owner/${roomid}`, 
+    console.log(roomno);
+    const response = await axios.get(`${API_BASE}/security/owner/${roomno}`, 
     {
       headers: { Authorization: `Bearer ${token}`, 
       'Content-Type': 'application/json'

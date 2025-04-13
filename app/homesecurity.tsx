@@ -1,31 +1,24 @@
-import React from 'react';
-import { View, Text, Button, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Alert,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  StatusBar,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import background from '../assets/images/background2.jpg'; // Adjust the path to your image
-import BlurTabBarBackground from '@/components/ui/TabBarBackground.ios';
 import { useAuth } from '../src/context/AuthContext';
-import { TextInput } from 'react-native';
-import { Alert, ScrollView } from 'react-native';
-import { useState } from 'react';
-import { loginSecurity } from '@/src/api/auth';
+import { loginSecurity } from '../src/api/auth';
 
-interface VisitorRequest {
-  _id: string;
-  visitorName: string;
-  roomno: number;
-  purpose: string;
-  status: number;
-  address?: string;
-  time?: string;
-  imageUrl?: string;
-}
-export default function WelcomeScreen() {
-    const [visitorRequests, setVisitorRequests] = useState<VisitorRequest[]>([]); 
-    const [email, setEmail] = React.useState('');
-    const [password, setPassword] = React.useState('');
-    const { authData } = useAuth();
-    const { login,logout } = useAuth();
+export default function SecurityScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const { authData, login, logout } = useAuth();
   const router = useRouter();
+
   const handleLogin = async () => {
     const response = await loginSecurity(email, password);
     if (response.success) {
@@ -34,112 +27,117 @@ export default function WelcomeScreen() {
       Alert.alert('Login Failed', response.message);
     }
   };
-if (!authData || authData.role !== 'security') {
+
+  // ** LOGIN VIEW **
+  if (!authData || authData.role !== 'security') {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Security Login</Text>
-        <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} />
-        <TextInput style={styles.input} placeholder="Password" value={password} secureTextEntry onChangeText={setPassword} />
-        <Button title="Login" onPress={handleLogin} /> 
+        <StatusBar barStyle="light-content" backgroundColor={styles.container.backgroundColor} />
+        <Text style={styles.header}>Security Login</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#888"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor="#888"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+        <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
+          <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
       </View>
     );
   }
+
+  // ** DASHBOARD VIEW **
   return (
-    <ImageBackground
-      source={background} // Replace with your background image URL
-      style={styles.background}
-      blurRadius={5}
-    >
-      <View style={styles.container}>
-        <Text style={styles.title}>Welcome to Apartment Management App</Text>
-        <Text style={styles.subtitle}>Manage your apartment effortlessly!</Text>
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.button, styles.securityButton]}
-            onPress={() => router.push('/security')}
-          >
-            <Text style={styles.buttonText}>Manage Visitors</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.ownerButton]}
-            onPress={() => router.push('/logbook')}
-          >
-            <Text style={styles.buttonText}>Database</Text>
-          </TouchableOpacity>
-
-        </View>
+    <ScrollView contentContainerStyle={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={styles.container.backgroundColor} />
+      <View style={styles.topBar}>
+        <Text style={styles.header}>Security Dashboard</Text>
+        <TouchableOpacity onPress={logout}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
       </View>
-    </ImageBackground>
+
+      <TouchableOpacity
+        style={[styles.primaryButton, styles.fullButton]}
+        onPress={() => router.push('/security')}
+      >
+        <Text style={styles.buttonText}>Manage Visitors</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.secondaryButton, styles.fullButton]}
+        onPress={() => router.push('/logbook')}
+      >
+        <Text style={styles.buttonText}>Database</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,// Adjust the opacity for a more subtle background
-    resizeMode: 'cover',
-  },
   container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexGrow: 1,
+    backgroundColor: '#1E1E2F',  // dark family color
     padding: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Adds a semi-transparent overlay
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#d3d3d3',
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  buttonContainer: {
-    width: '80%',
-    marginTop: 20,
-  },
-  button: {
-    paddingVertical: 15,
-    borderRadius: 25,
     alignItems: 'center',
-    marginBottom: 15,
+    justifyContent: 'center',
   },
-  securityButton: {
-    backgroundColor: '#4267B2', // Blue for Security
+  header: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 20,
   },
-  ownerButton: {
-    backgroundColor: '#DB4437', // Red for Owner
+  input: {
+    width: '100%',
+    backgroundColor: '#2A2A3D',
+    color: '#FFFFFF',
+    padding: 14,
+    borderRadius: 8,
+    marginBottom: 16,
   },
-  adminButton: {
-    backgroundColor: '#F4B400', // Yellow for Admin
+  primaryButton: {
+    backgroundColor: '#4F8EF7',
+    paddingVertical: 16,
+    borderRadius: 8,
+    paddingHorizontal: 40,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  secondaryButton: {
+    backgroundColor: '#6A6AEF',
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  fullButton: {
+    width: '100%',
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
   },
-  requestsContainer: { 
-    marginTop: 20, 
-    width: '100%' 
+  topBar: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 30,
   },
-  requestItem: { 
-    padding: 10, 
-    borderWidth: 1, 
-    marginBottom: 5, 
-    borderRadius: 5, 
-    backgroundColor: '#f9f9f9' 
-  },
-  input: { 
-   width: '80%', 
-    borderWidth: 1, 
-    padding: 10,
-    color: 'white', 
-    marginBottom: 10 
+  logoutText: {
+    color: '#FF5A5F',
+    fontWeight: '600',
   },
 });
+

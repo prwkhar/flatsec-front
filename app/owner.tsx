@@ -3,11 +3,14 @@ import {
   View,
   Text,
   TextInput,
-  Button,
-  FlatList,
   Alert,
+  FlatList,
   StyleSheet,
   Image,
+  StatusBar,
+  TouchableOpacity,
+  Dimensions,
+  ScrollView,
 } from "react-native";
 import { useAuth } from "../src/context/AuthContext";
 import { loginOwner } from "../src/api/auth";
@@ -15,157 +18,240 @@ import { getVisitorRequests, respondToRequest } from "../src/api/owner";
 import { io, Socket } from "socket.io-client";
 
 const SOCKET_URL = `http://192.168.176.234:3000`;
+const { width } = Dimensions.get("window");
 
-// Define the type for visitor requests using _id as string.
 interface VisitorRequest {
   _id: string;
   visitorName: string;
   purpose: string;
-  imageUrl?: string; 
-  status: number; 
+  imageUrl?: string;
+  status: number;
 }
 
 export default function OwnerScreen() {
   const { authData, login, logout } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // Only pending requests (status 0) are shown on the owner's dashboard.
   const [requests, setRequests] = useState<VisitorRequest[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
     if (authData && authData.role === "owner") {
       fetchRequests();
-      
+
       const newSocket: Socket = io(SOCKET_URL, {
         query: { token: authData.token },
       });
-      newSocket.on("status_update", (updatedRequest: VisitorRequest) => {
-        setRequests((prevRequests) => {
-          const filtered = prevRequests.filter(
-            (r) => r._id !== updatedRequest._id
-          );
-          return filtered;
-        });
+      newSocket.on("status_update", (updated: VisitorRequest) => {
+        setRequests((prev) => prev.filter((r) => r._id !== updated._id));
       });
       newSocket.on("new_request", (data: VisitorRequest) => {
-        if (data.status === 0) {
-          setRequests((prevRequests) => [data, ...prevRequests]);
-        }
+        if (data.status === 0) setRequests((prev) => [data, ...prev]);
       });
       setSocket(newSocket);
 
-      return () => {
-        newSocket.close();
-      };
+      return () => newSocket.close();
     }
-    return undefined;
   }, [authData]);
 
   const fetchRequests = async () => {
     if (!authData) return;
-    const response = await getVisitorRequests(authData.token);
-    if (response.success) {
-      const pendingRequests = (response.data as VisitorRequest[]).filter(
-        (r) => r.status === 0
-      );
-      setRequests(pendingRequests);
+    const resp = await getVisitorRequests(authData.token);
+    if (resp.success) {
+      setRequests((resp.data as VisitorRequest[]).filter((r) => r.status === 0));
     } else {
-      Alert.alert("Error", response.message);
+      Alert.alert("Error", resp.message);
     }
   };
 
   const handleResponse = async (id: string, accepted: boolean) => {
     if (!authData) return;
-    const response = await respondToRequest(authData.token, id, accepted);
-    if (response.success) {
+    const resp = await respondToRequest(authData.token, id, accepted);
+    if (resp.success) {
       Alert.alert("Response sent", accepted ? "Approved" : "Rejected");
-      // Refresh the requests (owner dashboard shows only pending ones)
       fetchRequests();
     } else {
-      Alert.alert("Error", response.message);
+      Alert.alert("Error", resp.message);
     }
   };
 
   const handleLogin = async () => {
-    const response = await loginOwner(email, password);
-    if (response.success) {
-      login({ token: response.data.token, role: "owner" });
+    const resp = await loginOwner(email, password);
+    if (resp.success) {
+      login({ token: resp.data.token, role: "owner" });
     } else {
-      Alert.alert("Login Failed", response.message);
+      Alert.alert("Login Failed", resp.message);
     }
   };
 
+  // LOGIN VIEW
   if (!authData || authData.role !== "owner") {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Owner Login</Text>
+      <ScrollView contentContainerStyle={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={styles.container.backgroundColor} />
+        <Text style={styles.header}>Owner Login</Text>
         <TextInput
           style={styles.input}
           placeholder="Email"
+          placeholderTextColor="#AAA"
           value={email}
           onChangeText={setEmail}
         />
         <TextInput
           style={styles.input}
           placeholder="Password"
-          value={password}
+          placeholderTextColor="#AAA"
           secureTextEntry
+          value={password}
           onChangeText={setPassword}
         />
-        <Button title="Login" onPress={handleLogin} />
-      </View>
+        <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
+          <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
+      </ScrollView>
     );
   }
 
+  // DASHBOARD VIEW
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Owner Dashboard</Text>
-      <Button title="Logout" onPress={logout} />
-      <FlatList
-        data={requests}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text>Name: {item.visitorName}</Text>
-            <Text>Purpose: {item.purpose}</Text>
-            {item.imageUrl && (
-              <Image
-                source={{ uri: item.imageUrl }}
-                style={styles.image}
-                resizeMode="contain" // Use "cover" or "stretch" if needed
-              />
-            )}
-            <View style={styles.buttonRow}>
-              <Button
-                title="Approve"
-                onPress={() => handleResponse(item._id, true)}
-              />
-              <Button
-                title="Reject"
-                onPress={() => handleResponse(item._id, false)}
-              />
+      <StatusBar barStyle="light-content" backgroundColor={styles.container.backgroundColor} />
+      <View style={styles.topBar}>
+        <Text style={styles.header}>Owner Dashboard</Text>
+        <TouchableOpacity onPress={logout}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+      {requests.length === 0 ? (
+        <Text style={styles.infoText}>No pending visitor requests.</Text>
+      ) : (
+        <FlatList
+          data={requests}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={styles.list}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              {item.imageUrl && (
+                <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+              )}
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>{item.visitorName}</Text>
+                <Text style={styles.cardSubtitle}>{item.purpose}</Text>
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    style={[styles.responseButton, styles.approveButton]}
+                    onPress={() => handleResponse(item._id, true)}
+                  >
+                    <Text style={styles.buttonText}>Approve</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.responseButton, styles.rejectButton]}
+                    onPress={() => handleResponse(item._id, false)}
+                  >
+                    <Text style={styles.buttonText}>Reject</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-          </View>
-        )}
-      />
+          )}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, alignItems: "center" },
-  title: { fontSize: 24, marginBottom: 20 },
-  input: { width: "80%", borderWidth: 1, padding: 10, marginBottom: 10 },
-  card: { borderWidth: 1, padding: 10, marginVertical: 5, width: "100%" },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 10,
+  container: {
+    flexGrow: 1,
+    backgroundColor: '#1E1E2F',
+    padding: 20,
+    alignItems: 'center',
   },
-  image: {
-    width: 100,
-    height: 100,
-    marginTop: 10,
+  topBar: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  header: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  logoutText: {
+    color: '#FF5A5F',
+    fontWeight: '600',
+  },
+  input: {
+    width: '100%',
+    backgroundColor: '#2A2A3D',
+    color: '#FFF',
+    padding: 14,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  primaryButton: {
+    backgroundColor: '#4F8EF7',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  list: {
+    paddingBottom: 20,
+  },
+  card: {
+    backgroundColor: '#2A2A3D',
+    borderRadius: 12,
+    width: width - 40,
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  cardImage: {
+    width: '100%',
+    height: 180,
+  },
+  cardContent: {
+    padding: 16,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 6,
+  },
+  cardSubtitle: {
+    fontSize: 16,
+    color: '#BBB',
+    marginBottom: 12,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  responseButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  approveButton: {
+    backgroundColor: '#4CAF50',
+    marginRight: 8,
+  },
+  rejectButton: {
+    backgroundColor: '#FF5722',
+    marginLeft: 8,
+  },
+  infoText: {
+    color: '#AAA',
+    fontSize: 16,
+    marginTop: 20,
   },
 });
+

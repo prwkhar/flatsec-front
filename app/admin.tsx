@@ -1,213 +1,233 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, ImageBackground } from 'react-native';
-import { CameraView, Camera, useCameraPermissions } from 'expo-camera';
-import { Picker } from '@react-native-picker/picker';
-import io from 'socket.io-client';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Alert,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  StatusBar,
+} from 'react-native';
 import { useAuth } from '../src/context/AuthContext';
-import { loginSecurity, fetchVisitorRequests, loginAdmin } from '../src/api/auth';
-import { sendVisitorDetails } from '../src/api/security';
+import { loginAdmin } from '../src/api/auth';
 import { getsecuritytRequests, removeSecurityDetails, sendsecurityDetails } from '@/src/api/admin';
 
-type securityrequest ={
+type SecurityRequest = {
   _id: string;
   email: string;
-}
+};
+
 export default function SecurityScreen() {
+  const { authData, login, logout } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [securityRequests, setsecurityRequests] = useState<securityrequest[]>([]);
-  const {authData,login,logout} = useAuth();
-  const [security, setsecurity] = useState({
-    address: '',
-    password: '',
-  });
-  const loadsecurityRequests = async () => {
-    if (authData) {
-      const response = await getsecuritytRequests(authData.token);
-      console.log(response.data.data);
-      if (response.success) {
-        setsecurityRequests(response.data.data);
-      } else {
-        Alert.alert('Error', response.message);
-      }
-    }
+  const [securityRequests, setSecurityRequests] = useState<SecurityRequest[]>([]);
+  const [form, setForm] = useState({ address: '', password: '' });
+
+  const loadRequests = async () => {
+    if (!authData) return;
+    const resp = await getsecuritytRequests(authData.token);
+    if (resp.success) setSecurityRequests(resp.data.data);
+    else Alert.alert('Error', resp.message);
   };
 
   useEffect(() => {
-    if (authData) {
-      loadsecurityRequests();
-    }
+    if (authData) loadRequests();
   }, [authData]);
-  const handleSend = async () => {
-    if (!authData) {
-      Alert.alert('Error', 'Authentication data not found.');
-      return;
-    }
-    const response = await sendsecurityDetails(authData.token,security);
-    if (response.success) {
-      console.log('Security details sent successfully:', response.data);
-      Alert.alert('Success', 'Visitor details sent!');
-      setsecurity({ address: '', password: ''});
-      loadsecurityRequests();
-    } else {
-      console.log('Error sending security details:', response.message);
-      Alert.alert('Error', response.message);
-    }
-  };
+
   const handleLogin = async () => {
-    const response = await loginAdmin(email, password);
-    if (response.success) {
-      login({ token: response.data.token, role: 'admin' });
-      loadsecurityRequests();
+    const resp = await loginAdmin(email, password);
+    if (resp.success) {
+      login({ token: resp.data.token, role: 'admin' });
+      loadRequests();
     } else {
-      Alert.alert('Login Failed', response.message);
-    }
-  };
-  
-  const handleremove = async (id: string) => {
-    console.log("remove button clicked");
-    if (!authData) {
-      console.log("auth data not found");
-      Alert.alert('Error', 'Authentication data not found.');
-      return;
-    }
-    const response = await removeSecurityDetails(authData.token,id);
-    console.log("response",response);
-    console.log("response data",response.data);
-    if (response.success) {
-      console.log('Security details removed successfully:', response.data);
-      Alert.alert('Success', 'Security details removed!');
-      loadsecurityRequests();
-    } else {
-      console.log('Error removing security details:', response.message);
-      Alert.alert('Error', response.message);
+      Alert.alert('Login Failed', resp.message);
     }
   };
 
+  const handleAdd = async () => {
+    if (!authData) return Alert.alert('Error', 'Not authenticated');
+    const resp = await sendsecurityDetails(authData.token, form);
+    if (resp.success) {
+      Alert.alert('Success', 'Security added');
+      setForm({ address: '', password: '' });
+      loadRequests();
+    } else {
+      Alert.alert('Error', resp.message);
+    }
+  };
+
+  const handleRemove = async (id: string) => {
+    if (!authData) return Alert.alert('Error', 'Not authenticated');
+    const resp = await removeSecurityDetails(authData.token, id);
+    if (resp.success) {
+      Alert.alert('Removed');
+      loadRequests();
+    } else {
+      Alert.alert('Error', resp.message);
+    }
+  };
+
+  // ** LOGIN **
   if (!authData || authData.role !== 'admin') {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Admin Login</Text>
-        <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} />
-        <TextInput style={styles.input} placeholder="Password" value={password} secureTextEntry onChangeText={setPassword} />
-        <Button title="Login" onPress={handleLogin} />
+        <StatusBar barStyle="light-content" backgroundColor={styles.container.backgroundColor} />
+        <Text style={styles.header}>Admin Login</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#aaa"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor="#aaa"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+        <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
+          <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
+  // ** DASHBOARD **
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Admin Dashboard</Text>
-      <Button title="Logout" onPress={logout} />
-      <TextInput
-        style={styles.input}
-        placeholder="Security Email"
-        value={security.address}
-        onChangeText={(text) => setsecurity({ ...security, address: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={security.password}
-        onChangeText={(text) => setsecurity({ ...security, password: text })}
-      />
+      <StatusBar barStyle="light-content" backgroundColor={styles.container.backgroundColor} />
+      <View style={styles.topBar}>
+        <Text style={styles.header}>Admin Dashboard</Text>
+        <TouchableOpacity onPress={logout}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
 
-      <Button title="Add Security" onPress={handleSend} />
+      <View style={styles.form}>
+        <TextInput
+          style={styles.input}
+          placeholder="Security Email"
+          placeholderTextColor="#aaa"
+          value={form.address}
+          onChangeText={t => setForm(f => ({ ...f, address: t }))}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor="#aaa"
+          secureTextEntry
+          value={form.password}
+          onChangeText={t => setForm(f => ({ ...f, password: t }))}
+        />
+        <TouchableOpacity style={styles.primaryButton} onPress={handleAdd}>
+          <Text style={styles.buttonText}>Add Security</Text>
+        </TouchableOpacity>
+      </View>
 
-      <ScrollView style={styles.requestsContainer}>
-        <Text style={styles.title}>Security</Text>
-        {securityRequests.length === 0 ? (
-          <Text>No security found.</Text>
-        ) : (
-          securityRequests.map((req) => (
-            <View key={req._id} style={styles.requestItem}>
-              <Text>Email: {req.email}</Text>
-              <Button title='Remove' onPress={()=>handleremove(req._id)}/>
-            </View>
-          ))
-        )}
-      </ScrollView>
+      <Text style={styles.subHeader}>Current Security</Text>
+      {securityRequests.length === 0 ? (
+        <Text style={styles.infoText}>No security accounts.</Text>
+      ) : (
+        securityRequests.map(req => (
+          <View key={req._id} style={styles.card}>
+            <Text style={styles.cardText}>{req.email}</Text>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => handleRemove(req._id)}
+            >
+              <Text style={styles.deleteText}>Remove</Text>
+            </TouchableOpacity>
+          </View>
+        ))
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,// Adjust the opacity for a more subtle background
-    resizeMode: 'cover',
-  },
-  container: { 
-    flex: 1, 
+  container: {
+    flexGrow: 1,
+    backgroundColor: '#1E1E2F',
     padding: 20,
-    alignItems: 'center', 
-    justifyContent: 'center',
-    color: 'white', 
-    backgroundColor: 'rgba(214, 192, 192, 0.5)', // Adds a semi-transparent overlay
+    alignItems: 'center',
   },
-  title: { 
-    fontSize: 24, 
-    marginBottom: 20,
-    color: 'white'
+  topBar: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 30,
   },
-  input: { 
-    width: '80%', 
-    borderWidth: 1, 
-    padding: 10,
-    color: 'white', 
-    marginBottom: 10 
+  header: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFF',
   },
-  label: { 
-    fontSize: 16, 
-    marginTop: 10,
-    color: 'white'
+  logoutText: {
+    color: '#FF5A5F',
+    fontWeight: '600',
   },
-  picker: { 
-    width: '80%', 
-    height: 50, 
-    marginBottom: 10 
-  },
-  requestsContainer: { 
-    marginTop: 20, 
-    width: '100%' 
-  },
-  requestItem: { 
-    padding: 10, 
-    borderWidth: 1, 
-    marginBottom: 5, 
-    borderRadius: 5, 
-    backgroundColor: '#f9f9f9' 
-  },
-  message: {
-    textAlign: 'center',
-    paddingBottom: 10,
-  },
-  cameraContainer: {
-    height: '50%' ,// 70% of screen height
+  form: {
     width: '100%',
     marginBottom: 20,
   },
-  camera: {
-    flex: 1,
+  input: {
+    width: '100%',
+    backgroundColor: '#2A2A3D',
+    color: '#FFF',
+    padding: 14,
+    borderRadius: 8,
+    marginBottom: 12,
   },
-  buttonContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-    margin: 64,
-  },
-  button: {
-    flex: 1,
-    alignSelf: 'flex-end',
+  primaryButton: {
+    backgroundColor: '#4F8EF7',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 8,
     alignItems: 'center',
   },
-  text: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
+  buttonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
-  previewImage: {
-    width: 200,
-    height: 200,
-    marginTop: 10
-  }
+  subHeader: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFF',
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  infoText: {
+    color: '#AAA',
+    marginBottom: 20,
+  },
+  card: {
+    width: '100%',
+    backgroundColor: '#2A2A3D',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardText: {
+    color: '#FFF',
+    fontSize: 16,
+  },
+  deleteButton: {
+    backgroundColor: '#FF5A5F',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  deleteText: {
+    color: '#FFF',
+    fontWeight: '600',
+  },
 });

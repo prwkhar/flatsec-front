@@ -3,146 +3,174 @@ import {
   View,
   Text,
   StyleSheet,
-  ImageBackground,
   TextInput,
   Alert,
   TouchableOpacity,
   ScrollView,
+  StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import background from '../assets/images/background2.jpg';
 import { useAuth } from '../src/context/AuthContext';
 import { findownerroomno } from '@/src/api/security';
 
 export default function WelcomeScreen() {
-  const [email, setemail] = useState('');
-  const [name, setname] = useState('');
-  const [phoneno, setphoneno] = useState('');
-  const [permission, setpermission] = useState(false);
-  const [roomno, setroomno] = useState('');
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [phoneNo, setPhoneNo] = useState('');
+  const [permission, setPermission] = useState(false);
+  const [roomNo, setRoomNo] = useState('');
   const [displayDetails, setDisplayDetails] = useState(false);
   const { authData } = useAuth();
   const router = useRouter();
 
-  const handlefindowner = async (roomno: string) => {
-    console.log("button is pressed");
+  const handleFindOwner = async (room: string) => {
     if (!authData) {
       Alert.alert('Error', 'Authentication data not found.');
       return;
     }
     try {
-      console.log("inside the handlefindowner");
-      const response = await findownerroomno(authData?.token, roomno);
+      const response = await findownerroomno(authData.token, room);
       if (response.success) {
-        setemail(response.body?.email ?? 'N/A');
-        setname(response.body.name ?? 'N/A');
-        setphoneno(response.body.phoneno ?? 'N/A');
-        setpermission(response.body.permission ?? false);
+        setEmail(response.body?.email ?? 'N/A');
+        setName(response.body.name ?? 'N/A');
+        setPhoneNo(response.body.phoneno ?? 'N/A');
+        setPermission(response.body.permission ?? false);
         setDisplayDetails(true);
       } else {
         setDisplayDetails(false);
         Alert.alert('Not Found', 'No owner found for this room.');
       }
-    } catch (error) {
-      console.error('Error finding owner:', error);
+    } catch (err) {
       Alert.alert('Error', 'Failed to find owner.');
     }
   };
 
   return (
-    <ImageBackground source={background} style={styles.background} blurRadius={5}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Search Owner by Flat No</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Flat No"
-          placeholderTextColor="#ddd"
-          value={roomno}
-          onChangeText={setroomno}
-        />
-        <TouchableOpacity style={styles.searchButton} onPress={() => handlefindowner(roomno)}>
-          <Text style={styles.buttonText}>Search</Text>
-        </TouchableOpacity>
+    <View style={styles.background}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="black" />
+      <ScrollView contentContainerStyle={styles.overlay}>
+        <View style={styles.card}>
+          <Text style={styles.title}>Search Owner by Email</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Owners Email"
+            placeholderTextColor="#aaa"
+            value={roomNo}
+            onChangeText={setRoomNo}
+          />
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => handleFindOwner(roomNo)}
+          >
+            <Text style={styles.buttonText}>Search</Text>
+          </TouchableOpacity>
+        </View>
 
         {displayDetails && (
-          <View style={styles.resultContainer}>
+          <View style={styles.resultCard}>
             <Text style={styles.resultTitle}>Owner Details</Text>
-            <Text style={styles.detailText}><Text style={styles.label}>Name:</Text> {name}</Text>
-            <Text style={styles.detailText}><Text style={styles.label}>Email:</Text> {email}</Text>
-            <Text style={styles.detailText}><Text style={styles.label}>Phone:</Text> {phoneno}</Text>
+            <Text style={styles.detailText}>
+              <Text style={styles.label}>Name:</Text> {name}
+            </Text>
+            <Text style={styles.detailText}>
+              <Text style={styles.label}>Email:</Text> {email}
+            </Text>
+            <Text style={styles.detailText}>
+              <Text style={styles.label}>Phone:</Text> {phoneNo}
+            </Text>
             <Text style={styles.detailText}>
               <Text style={styles.label}>Permission:</Text>{' '}
-              <Text style={{ color: permission ? 'green' : 'red', fontWeight: 'bold' }}>
+              <Text
+                style={[
+                  styles.permissionText,
+                  { color: permission ? '#4CAF50' : '#FF5722' },
+                ]}
+              >
                 {permission ? 'Granted' : 'Denied'}
               </Text>
             </Text>
           </View>
         )}
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    resizeMode: 'cover',
+    backgroundColor: '#1E1E2F',
   },
-  container: {
+  overlay: {
     flexGrow: 1,
     padding: 20,
-    alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+  },
+  card: {
+    width: '100%',
+    backgroundColor: '#2A2A3D',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 5,
   },
   title: {
-    fontSize: 28,
-    marginBottom: 20,
-    color: 'white',
-    fontWeight: 'bold',
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   input: {
-    width: '90%',
+    width: '100%',
+    backgroundColor: '#1E1E2F',
+    color: '#FFF',
+    padding: 14,
+    borderRadius: 8,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    color: 'white',
-    marginBottom: 20,
+    borderColor: '#3A3A55',
   },
-  searchButton: {
-    backgroundColor: '#1e90ff',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+  primaryButton: {
+    backgroundColor: '#4F8EF7',
+    paddingVertical: 16,
     borderRadius: 8,
-    marginBottom: 20,
+    alignItems: 'center',
   },
   buttonText: {
-    fontSize: 18,
-    color: 'white',
-    fontWeight: 'bold',
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
-  resultContainer: {
+  resultCard: {
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    padding: 20,
+    backgroundColor: '#F4F6FA',
     borderRadius: 12,
+    padding: 20,
     marginTop: 10,
   },
   resultTitle: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: '#2E3B4E',
     marginBottom: 12,
-    color: '#333',
     textAlign: 'center',
   },
   detailText: {
     fontSize: 16,
+    color: '#2E3B4E',
     marginBottom: 8,
-    color: 'black',
   },
   label: {
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: '#2E3B4E',
+  },
+  permissionText: {
+    fontWeight: '700',
   },
 });
