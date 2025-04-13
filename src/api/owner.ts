@@ -26,3 +26,19 @@ export const respondToRequest = async (token: string, requestId: string, accepte
     return { success: false, message: error.response?.data?.message || error.message };
   }
 };
+
+export const toggleCallPermission = async (token: string, permission: boolean) => {
+  try {
+    const res = await axios.patch(
+      `${API_BASE}/owner/toggle-call-permission`,
+      { permission },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return { success: true, permission: res.data.permission };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err.response?.data?.message || "Error updating permission",
+    };
+  }
+};

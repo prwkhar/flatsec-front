@@ -11,11 +11,14 @@ import {
   TouchableOpacity,
   Dimensions,
   ScrollView,
+  Switch,
+  ActivityIndicator, // Added for loading state
 } from "react-native";
 import { useAuth } from "../src/context/AuthContext";
 import { loginOwner } from "../src/api/auth";
-import { getVisitorRequests, respondToRequest } from "../src/api/owner";
+import { getVisitorRequests, respondToRequest, toggleCallPermission } from "../src/api/owner";
 import { io, Socket } from "socket.io-client";
+import axios from "axios";
 
 const SOCKET_URL = `http://192.168.176.234:3000`;
 const { width } = Dimensions.get("window");
@@ -34,33 +37,68 @@ export default function OwnerScreen() {
   const [password, setPassword] = useState("");
   const [requests, setRequests] = useState<VisitorRequest[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [callPermission, setCallPermission] = useState(false);
+  const [loading, setLoading] = useState(true); // Added loading state
+
+  useEffect(() => {
+    fetchCallPermission();
+  },[]);
 
   useEffect(() => {
     if (authData && authData.role === "owner") {
       fetchRequests();
+      fetchCallPermission();
 
       const newSocket: Socket = io(SOCKET_URL, {
         query: { token: authData.token },
       });
+
       newSocket.on("status_update", (updated: VisitorRequest) => {
         setRequests((prev) => prev.filter((r) => r._id !== updated._id));
       });
+
       newSocket.on("new_request", (data: VisitorRequest) => {
         if (data.status === 0) setRequests((prev) => [data, ...prev]);
       });
-      setSocket(newSocket);
 
+      setSocket(newSocket);
       return () => newSocket.close();
     }
   }, [authData]);
 
   const fetchRequests = async () => {
     if (!authData) return;
+    console.log(authData.token);
     const resp = await getVisitorRequests(authData.token);
     if (resp.success) {
       setRequests((resp.data as VisitorRequest[]).filter((r) => r.status === 0));
     } else {
       Alert.alert("Error", resp.message);
+    }
+  };
+
+  const fetchCallPermission = async () => {
+    if (!authData) return;
+    try {
+      const res = await axios.get(`${SOCKET_URL}/api/owner/call-permission`, {
+        headers: { Authorization: `Bearer ${authData.token}` },
+      });
+      if (typeof res.data.permission === "boolean") {
+        setCallPermission(res.data.permission);
+      }
+    } catch (err) {
+      console.log("Failed to fetch call permission:", err);
+    } finally {
+      setLoading(false); // Stop loading after fetch completes
+    }
+  };
+
+  const handlePermissionToggle = async (value: boolean) => {
+    setCallPermission(value);
+    const result = await toggleCallPermission(authData!.token, value);
+    if (!result.success) {
+      Alert.alert("Error", result.message);
+      setCallPermission(!value); // Revert toggle if failed
     }
   };
 
@@ -84,7 +122,6 @@ export default function OwnerScreen() {
     }
   };
 
-  // LOGIN VIEW
   if (!authData || authData.role !== "owner") {
     return (
       <ScrollView contentContainerStyle={styles.container}>
@@ -112,7 +149,6 @@ export default function OwnerScreen() {
     );
   }
 
-  // DASHBOARD VIEW
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={styles.container.backgroundColor} />
@@ -122,6 +158,22 @@ export default function OwnerScreen() {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Call Permission Toggle */}
+      <View style={styles.permissionToggle}>
+        <Text style={styles.permissionText}>Allow Video/Audio Calls</Text>
+        {loading ? (
+          <ActivityIndicator size="small" color="#4CAF50" /> // Show loading indicator
+        ) : (
+          <Switch
+            value={callPermission}
+            onValueChange={handlePermissionToggle}
+            thumbColor={callPermission ? "#4CAF50" : "#FF3D00"}
+            trackColor={{ false: "#767577", true: "#81b0ff" }}
+          />
+        )}
+      </View>
+
       {requests.length === 0 ? (
         <Text style={styles.infoText}>No pending visitor requests.</Text>
       ) : (
@@ -252,5 +304,20 @@ const styles = StyleSheet.create({
     color: '#AAA',
     fontSize: 16,
     marginTop: 20,
+  },
+  permissionToggle: {
+    backgroundColor: '#2A2A3D',
+    width: width - 40,
+    borderRadius: 10,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  permissionText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
