@@ -43,7 +43,6 @@ export const removeSecurityDetails = async (
     const response = await axios.delete(`${API_BASE}/admin/removesecurity/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    console.log("sucess at api",response.data);
     return { success: true, data: response.data };
   } catch (error: any) {
     console.log(`error at remove security details`,error.response``);
